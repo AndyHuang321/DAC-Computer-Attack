@@ -1,5 +1,9 @@
 #include "client.h"
 
+void ServerConnection::parse() {
+    
+}
+
 bool Client::connected = false;
 
 Client::Client(std::string ip, int port) {
@@ -51,11 +55,12 @@ bool Client::sendString(std::string message) {
 std::string Client::recvString() {
     std::string recvbuf;
     recvbuf.resize(DEFAULT_BUFLEN);
-
-    if (recv(connection, &recvbuf[0], DEFAULT_BUFLEN, 0) == SOCKET_ERROR) {
+    int len = recv(connection, &recvbuf[0], DEFAULT_BUFLEN, 0);
+    if (len == SOCKET_ERROR) {
         std::cout << "recv failed with error: " << WSAGetLastError() << std::endl;
         return NULL;
     }
+    recvbuf.resize(len);
     return recvbuf;
 }
 
@@ -67,15 +72,22 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-
-
     Client client = Client(argv[1], atoi(argv[2]));
     if (!client.connectToServer()) {
         std::cout << "Connection Failed" << std::endl;
     }
-    std::cout << "Here" << std::endl;
-    client.sendString("Hope this works");
-    std::cout << client.recvString() << std::endl;
+    std::string message = "placeholder";
+    std::string response = "placeholder";
+    std::cout << (message.compare("Close Connection")) << std::endl;
+    while (!(message.compare("Close Connection") == 0 || response.compare("Close Connection") == 0)) {
+        std::cout << "Message: ";
+        std::cin >> message;
+        if (!message.empty()) {
+            client.sendString(message);
+        }
+        response = client.recvString();
+        std::cout << response << std::endl;
+    }
     client.closeConnection();
 }
 /*
