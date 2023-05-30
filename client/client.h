@@ -1,12 +1,22 @@
 #pragma once
 
 #include "connection.h"
+#include<stdio.h>
 
 #define DEFAULT_BUFLEN 512
 #define DEFAULT_PORT "27015"
 
 class ServerConnection : private Connection {
-	void parse();
+private:
+
+public:
+	ServerConnection(SOCKET sock) : Connection(sock) {};
+	~ServerConnection();
+	const std::string& recvMessage();
+	bool sendMessage(const std::string& text);
+	SOCKET getSock() {
+		return this->socket;
+	}
 };
 
 class Client {
