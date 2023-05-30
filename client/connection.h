@@ -16,13 +16,16 @@
 #pragma comment (lib, "AdvApi32.lib")
 
 class Connection {
+protected:
 	SOCKET socket;
-	uint16_t messageLen; 
-	uint16_t cursor;
+	uint32_t messageLen;
+	uint32_t cursor;
 	std::string in;
 	std::string out;
-
+	bool complete;
+public:
 	Connection(SOCKET sock) {
+		complete = false;
 		socket = sock;
 		messageLen = sizeof(messageLen);
 		cursor = 0;
@@ -35,9 +38,11 @@ class Connection {
 		}
 	}
 
-	void recv();
+	const std::string& message();
 
-	void send();
+	bool recv();
 
-	virtual void parse() = 0;
+	bool send();
+
+	//virtual void parse() = 0;
 };
